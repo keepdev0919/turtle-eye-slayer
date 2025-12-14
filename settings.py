@@ -6,18 +6,14 @@ import os
 import shutil
 import time
 
-# Constants
-# Constants
-def get_base_dir():
-    if getattr(sys, 'frozen', False):
-        return os.path.abspath(os.path.join(os.path.dirname(sys.executable), "../../.."))
-    else:
-        return os.path.dirname(__file__)
+import sys
+import utils
 
-BASE_DIR = get_base_dir()
-CONFIG_FILE = os.path.join(BASE_DIR, "config.json")
-CHARACTERS_FILE = os.path.join(BASE_DIR, "characters.json")
-ASSETS_DIR = os.path.join(BASE_DIR, "assets")
+# Constants
+BASE_DIR = utils.BASE_DIR
+CONFIG_FILE = utils.CONFIG_FILE
+CHARACTERS_FILE = utils.CHARACTERS_FILE
+ASSETS_DIR = utils.ASSETS_DIR
 
 WINDOW_WIDTH = 500
 WINDOW_HEIGHT = 650

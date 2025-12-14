@@ -71,6 +71,13 @@ class MissionBoardApp:
         self.tab_characters = tk.Frame(self.notebook, bg="#f5e6d3")
         self.notebook.add(self.tab_characters, text="캐릭터 관리")
         self.setup_character_tab()
+        
+        self.current_dialog = None
+        
+    def on_dialog_close(self):
+        if self.current_dialog:
+            self.current_dialog.destroy()
+            self.current_dialog = None    
 
     def setup_schedule_tab(self):
         tk.Label(
@@ -186,6 +193,11 @@ class MissionBoardApp:
             self.open_character_dialog(index)
 
     def open_character_dialog(self, index=None):
+        # Close existing dialog if open
+        if self.current_dialog is not None and self.current_dialog.winfo_exists():
+            self.current_dialog.destroy()
+            self.current_dialog = None
+
         # Mode check
         is_edit = (index is not None)
         mode_title = "캐릭터 수정" if is_edit else "캐릭터 추가"
@@ -199,8 +211,10 @@ class MissionBoardApp:
 
         # New Window
         top = tk.Toplevel(self.root)
+        self.current_dialog = top
         top.title(mode_title)
         top.geometry("400x650") # Height increased for image preview
+        top.protocol("WM_DELETE_WINDOW", self.on_dialog_close)
         
         # Image Section
         tk.Label(top, text="1. 이미지 선택").pack(pady=5)
@@ -263,7 +277,7 @@ class MissionBoardApp:
             name_entry.insert(0, current_data.get("name", ""))
         
         # Quotes
-        tk.Label(top, text="3. 대사 (한 줄에 하나씩)").pack(pady=5)
+        tk.Label(top, text="3. 대사 (여러줄을 입력하시면 랜덤으로 한줄이 뜨게됩니다)").pack(pady=5)
         quotes_text = tk.Text(top, height=8)
         quotes_text.pack(padx=20, fill="x")
         if is_edit:

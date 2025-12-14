@@ -6,7 +6,7 @@ tell application "Finder"
     set myDir to parent of (path to me) as text
 end tell
 set posixDir to POSIX path of myDir
-do shell script "cd " & quoted form of posixDir & " && ./venv/bin/python3 main.py >/dev/null 2>&1 &"
+do shell script "cd " & quoted form of posixDir & " && ./venv/bin/python3 src/main.py >/dev/null 2>&1 &"
 '
 
 # 2. Settings App
@@ -15,7 +15,7 @@ tell application "Finder"
     set myDir to parent of (path to me) as text
 end tell
 set posixDir to POSIX path of myDir
-do shell script "cd " & quoted form of posixDir & " && ./venv/bin/python3 settings.py >/dev/null 2>&1 &"
+do shell script "cd " & quoted form of posixDir & " && ./venv/bin/python3 src/settings.py >/dev/null 2>&1 &"
 '
 
 # 3. Test UI App
@@ -24,7 +24,7 @@ tell application "Finder"
     set myDir to parent of (path to me) as text
 end tell
 set posixDir to POSIX path of myDir
-do shell script "cd " & quoted form of posixDir & " && ./venv/bin/python3 test_ui.py >/dev/null 2>&1 &"
+do shell script "cd " & quoted form of posixDir & " && ./venv/bin/python3 src/debug/test_ui.py >/dev/null 2>&1 &"
 '
 
 echo "App creation complete."

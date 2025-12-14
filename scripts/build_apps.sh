@@ -5,15 +5,15 @@ rm -rf build dist *.spec
 
 # Build "작전 개시.app"
 echo "Building 작전 개시..."
-./venv/bin/pyinstaller --noconsole --onefile --windowed --name "작전 개시" main.py
+./venv/bin/pyinstaller --noconsole --onefile --windowed --name "작전 개시" src/main.py
 
 # Build "환경설정.app"
 echo "Building 환경설정..."
-./venv/bin/pyinstaller --noconsole --onefile --windowed --name "환경설정" settings.py
+./venv/bin/pyinstaller --noconsole --onefile --windowed --name "환경설정" src/settings.py
 
 # Build "UI 테스트.app"
 echo "Building UI 테스트..."
-./venv/bin/pyinstaller --noconsole --onefile --windowed --name "UI 테스트" test_ui.py
+./venv/bin/pyinstaller --noconsole --onefile --windowed --name "UI 테스트" src/debug/test_ui.py
 
 # Move apps to root
 echo "Moving apps to project root..."

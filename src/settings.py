@@ -162,8 +162,16 @@ class MissionBoardApp:
         
         tk.Button(btn_frame, text="캐릭터 추가", command=lambda: self.open_character_dialog(None)).pack(side="left", padx=5)
         tk.Button(btn_frame, text="선택 삭제", command=self.delete_character).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="기본값 복원", command=self.reset_to_defaults, bg="#FFB6C1").pack(side="left", padx=5)
         
         tk.Label(btn_frame, text="* 목록을 더블클릭하면 수정할 수 있습니다.", bg="#f5e6d3", fg="#666").pack(side="left", padx=10)
+
+    def reset_to_defaults(self):
+        if messagebox.askyesno("경고", "모든 캐릭터 데이터가 초기화됩니다.\n정말로 기본값으로 되돌리시겠습니까?"):
+            self.characters = utils.DEFAULT_CHARACTERS
+            save_json(CHARACTERS_FILE, self.characters)
+            self.load_character_list()
+            messagebox.showinfo("완료", "기본값으로 복원되었습니다.")
 
     def load_character_list(self):
         self.char_listbox.delete(0, tk.END)

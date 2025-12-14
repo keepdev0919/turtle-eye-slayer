@@ -5,12 +5,13 @@ import os
 import subprocess
 import utils
 
-# Global variable for cooldown
+# Global variable for popup process
+current_popup_process = None
 last_trigger_time = 0
 
 def launch_popup():
     """Launches the health reminder popup in a separate process."""
-    global last_trigger_time
+    global last_trigger_time, current_popup_process
     
     current_time = time.time()
     # Cooldown check: Prevent multiple launches within 60 seconds
@@ -20,16 +21,26 @@ def launch_popup():
 
     print(f"Health check triggered at {time.strftime('%H:%M:%S')}")
     
+    # Auto-close previous popup if it exists
+    if current_popup_process is not None:
+        if current_popup_process.poll() is None: # Still running
+            print("Terminating previous popup...")
+            try:
+                current_popup_process.terminate()
+                current_popup_process.wait(timeout=1)
+            except Exception as e:
+                print(f"Error terminating previous popup: {e}")
+    
     # Update last trigger time
     last_trigger_time = current_time
     
     # Determine python executable
     python_exe = sys.executable
-    popup_script = os.path.join(utils.BASE_DIR, "popup.py")
+    popup_script = os.path.join(utils.BASE_DIR, "src", "popup.py")
     
     # Launch without waiting (non-blocking)
     try:
-        subprocess.Popen([python_exe, popup_script])
+        current_popup_process = subprocess.Popen([python_exe, popup_script])
     except Exception as e:
         print(f"Failed to launch popup: {e}")
 

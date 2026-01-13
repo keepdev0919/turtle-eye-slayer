@@ -30,6 +30,22 @@ def show_popup():
     root = tk.Tk()
     root.title(f"귀살대 건강 관리")
     
+    # Set Window Icon
+    try:
+        from PIL import Image, ImageTk
+        icon_path = os.path.join(utils.PROJECT_ROOT, "assets", "app_icon.png")
+        if not os.path.exists(icon_path):
+            icon_path = os.path.join(utils.PROJECT_ROOT, "assets", "tanjiro.png")
+        
+        if os.path.exists(icon_path):
+            img = Image.open(icon_path)
+            photo = ImageTk.PhotoImage(img)
+            root.iconphoto(True, photo)
+            # Keep a reference
+            root._icon_ref = photo
+    except Exception as e:
+        print(f"Failed to set window icon: {e}")
+    
     # FRAMELESS WINDOW SETUP
     root.overrideredirect(True) # Remove Title Bar
     root.attributes('-topmost', True)

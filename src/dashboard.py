@@ -64,16 +64,22 @@ class CanvasButton:
             self.canvas.itemconfig(self.text_id, fill=base_color)
         if hover_color: self.hover_color = hover_color
 
-def launch_popup():
+# VER: 1.0.1 - FIXED PREVIEW COOLDOWN
+def launch_popup(force=False):
     """Triggers the popup script via subprocess (Single Binary Mode)."""
     global current_popup_process, last_trigger_time
     
     try:
         # 1. Cooldown & duplicate check
         now = time.time()
-        if now - last_trigger_time < 30: # 30s cooldown
-            print("Skipping popup: Cooldown active.")
+        cooldown_remains = 30 - (now - last_trigger_time)
+        
+        if not force and cooldown_remains > 0:
+            print(f"Skipping popup: Cooldown active ({cooldown_remains:.1f}s remains).")
             return
+
+        if force:
+            print(">>> Force launch requested (Preview mode) <<<")
 
         # 2. Terminate previous popup if it's still running
         if current_popup_process is not None:
@@ -163,7 +169,7 @@ class DashboardApp:
                                        base_color="#2ecc71", hover_color="#45e683", font=("Malgun Gothic", 22, "bold"))
         
         # 3. Sub Buttons
-        self.btn_preview = CanvasButton(self.canvas, 260, 420, 160, 60, "미리보기", launch_popup, 
+        self.btn_preview = CanvasButton(self.canvas, 260, 420, 160, 60, "미리보기", lambda: launch_popup(force=True), 
                                         base_color="#ffffff", hover_color="#cccccc", font=("Malgun Gothic", 14, "bold"))
         
         self.btn_settings = CanvasButton(self.canvas, 540, 420, 160, 60, "환경 설정", self.open_settings, 

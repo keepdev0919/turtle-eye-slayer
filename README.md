@@ -22,19 +22,6 @@
 
 ---
 
-## ⚡️ 빠른 시작 (Quick Start)
-
-일반 사용자분들은 복잡한 설정 없이 빌드된 앱을 바로 다운로드하여 사용하실 수 있습니다.
-
-1. [GitHub Releases](https://github.com/keepdev0919/turtle-eye-slayer/releases) 페이지로 이동합니다.
-2. 최신 버전의 `DemonSlayerHealth_v1.0.0_macOS.zip` 파일을 다운로드합니다.
-3. 압축을 풀고 **`귀살대 건강 관리.app`**을 실행하세요!
-
-> [!TIP]
-> 만약 "확인되지 않은 개발자" 메시지가 뜨며 실행되지 않는다면, 마우스 오른쪽 버튼으로 클릭 후 **'열기'**를 선택하거나 [문제 해결](#-문제-해결-및-참고사항) 섹션을 확인해 주세요.
-
----
-
 ## 🛠 기술 스택
 - **Language**: Python 3.x
 - **GUI Framework**: Tkinter
@@ -44,7 +31,7 @@
 
 ---
 
-## 🚀 실행 및 개발 가이드 (For Developers)
+## 🚀 실행 방법 (개발자용)
 
 ### 1. 환경 설정
 ```bash

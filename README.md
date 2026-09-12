@@ -59,17 +59,19 @@ sh scripts/build_apps.sh
 ```
 빌드가 완료되면 루트 디렉토리에 **`귀살대 건강 관리.app`**이 생성됩니다.
 
+> 생성된 앱은 `~/Applications` 또는 `/Applications`로 옮겨서 실행하세요. `~/Desktop` 하위 폴더에 둔 채 Finder나 `open`으로 실행하면 macOS 보호 정책 때문에 창이 뜨지 않는 경우가 있습니다(터미널에서 바이너리를 직접 실행하면 동작해 혼동하기 쉽습니다). 앱을 옮긴 뒤 한 번 실행하면 자동 실행 경로는 스스로 갱신됩니다.
+> 내부 실행 파일명은 `DemonSlayerHealth`(ASCII)입니다. 한글 실행 파일명은 macOS `codesign`을 크래시시켜 서명이 깨지므로 표시 이름만 한글로 설정합니다.
+
 ---
 
 ## 📂 프로젝트 구조
 ```text
 .
 ├── src/                # 소스 코드
-│   ├── dashboard.py    # 메인 작전 본부 (GUI & 스케줄러 제어)
-│   ├── main.py         # 백그라운드 알림 로직
+│   ├── dashboard.py    # 메인 작전 본부 (GUI, 스케줄러 스레드, `--popup` 인자로 팝업 프로세스 실행)
 │   ├── settings.py     # 대원 및 일정 관리 설정창
-│   ├── popup.py        # 알림 팝업창
-│   └── utils.py        # 설정 및 리소스 관리 유틸리티
+│   ├── popup.py        # 알림 팝업창 (대시보드가 별도 프로세스로 실행)
+│   └── utils.py        # 경로/설정/리소스/자동 실행 유틸리티
 ├── assets/             # 대원 이미지 및 아이콘 리소스
 ├── data/               # 설정(config.json) 및 캐릭터 데이터(characters.json)
 ├── scripts/            # 빌드 및 자동화 스크립트
@@ -84,6 +86,8 @@ sh scripts/build_apps.sh
   xattr -cr "귀살대 건강 관리.app"
   ```
 - **백그라운드 복구**: 창을 닫아도 프로그램은 계속 실행됩니다. Dock 바에 있는 아이콘을 클릭하면 언제든지 '작전 본부'를 다시 열 수 있습니다.
+- **사용자 데이터 위치**: `~/Library/Application Support/DemonSlayerHealth/` (설정 `data/`, 이미지 `assets/`). 앱을 업데이트해도 이 폴더의 사용자 수정 내용은 유지되며, 기본 이미지가 빠져 있으면 실행 시 자동으로 채워집니다.
+- **자동 실행**: 체크 시 `~/Library/LaunchAgents/com.demon_slayer.health.plist`가 생성되며 다음 로그인부터 적용됩니다. 앱을 다른 폴더로 옮긴 경우 앱을 한 번 실행하면 경로가 자동 갱신됩니다.
 
 ---
 **건강하게 일하고, 주를 향해 나아가십시오!**

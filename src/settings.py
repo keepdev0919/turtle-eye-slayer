@@ -1,7 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, filedialog, ttk
 from PIL import Image, ImageTk
-import json
 import os
 import shutil
 import time
@@ -10,26 +9,16 @@ import sys
 import utils
 
 # Constants
-BASE_DIR = utils.BASE_DIR
 CONFIG_FILE = utils.CONFIG_FILE
 CHARACTERS_FILE = utils.CHARACTERS_FILE
 ASSETS_DIR = utils.ASSETS_DIR
+FONT = utils.FONT_FAMILY
 
 WINDOW_WIDTH = 500
 WINDOW_HEIGHT = 650
 
-def load_json(filepath, default_value):
-    if not os.path.exists(filepath):
-        return default_value
-    try:
-        with open(filepath, "r") as f:
-            return json.load(f)
-    except:
-        return default_value
-
-def save_json(filepath, data):
-    with open(filepath, "w") as f:
-        json.dump(data, f, indent=4, ensure_ascii=False)
+load_json = utils.load_json
+save_json = utils.save_json
 
 class MissionBoardApp:
     def __init__(self, root):
@@ -48,7 +37,7 @@ class MissionBoardApp:
         tk.Label(
             self.root, 
             text="환경설정", 
-            font=("Malgun Gothic", 24, "bold"), 
+            font=(FONT, 24, "bold"), 
             bg="#f5e6d3", 
             fg="black"
         ).pack(pady=10)
@@ -57,7 +46,7 @@ class MissionBoardApp:
         style = ttk.Style()
         style.theme_use('default')
         style.configure('TNotebook', background="#f5e6d3")
-        style.configure('TNotebook.Tab', font=("Malgun Gothic", 10, "bold"), padding=[10, 5])
+        style.configure('TNotebook.Tab', font=(FONT, 10, "bold"), padding=[10, 5])
         
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(expand=True, fill="both", padx=10, pady=10)
@@ -83,15 +72,14 @@ class MissionBoardApp:
         tk.Label(
             self.tab_schedule,
             text="임무 수행 시간 선택 (매 시)",
-            font=("Malgun Gothic", 12),
+            font=(FONT, 12),
             bg="#f5e6d3",
             fg="#555555"
         ).pack(pady=20)
 
         # Checkboxes
         self.vars = {}
-        config_data = load_json(CONFIG_FILE, {"selected_minutes": [50]})
-        current_selection = config_data.get("selected_minutes", [50])
+        current_selection = utils.get_schedule_minutes()
         
         checkbox_frame = tk.Frame(self.tab_schedule, bg="#f5e6d3")
         checkbox_frame.pack(pady=10)
@@ -108,7 +96,7 @@ class MissionBoardApp:
                 checkbox_frame, 
                 text=f"{minute:02d} 분", 
                 variable=var, 
-                font=("Malgun Gothic", 16, "bold"),
+                font=(FONT, 16, "bold"),
                 bg="#f5e6d3",
                 activebackground="#f5e6d3",
                 selectcolor="white"
@@ -120,7 +108,7 @@ class MissionBoardApp:
             self.tab_schedule,
             text="시간 설정 저장",
             command=self.save_schedule,
-            font=("Malgun Gothic", 14, "bold"),
+            font=(FONT, 14, "bold"),
             bg="#8B0000", fg="white",
             highlightbackground="#8B0000"
         )
@@ -151,7 +139,7 @@ class MissionBoardApp:
         
         self.char_listbox = tk.Listbox(
             self.char_list_frame, 
-            font=("Malgun Gothic", 11),
+            font=(FONT, 11),
             yscrollcommand=scrollbar.set,
             selectmode=tk.SINGLE
         )
@@ -193,14 +181,15 @@ class MissionBoardApp:
 
     def reset_to_defaults(self):
         if messagebox.askyesno("경고", "모든 캐릭터 데이터가 초기화됩니다.\n정말로 기본값으로 되돌리시겠습니까?"):
-            self.characters = utils.DEFAULT_CHARACTERS
+            self.characters = utils.get_default_characters()
             save_json(CHARACTERS_FILE, self.characters)
             self.load_character_list()
             messagebox.showinfo("완료", "기본값으로 복원되었습니다.")
 
     def load_character_list(self):
         self.char_listbox.delete(0, tk.END)
-        self.characters = load_json(CHARACTERS_FILE, [])
+        # Same loader the popup uses, so the list always matches what actually appears
+        self.characters = utils.get_character_data()
         for char in self.characters:
             self.char_listbox.insert(tk.END, f"{char['name']} ({char['image']})")
 
@@ -354,7 +343,7 @@ class MissionBoardApp:
             self.load_character_list()
             top.destroy()
             
-        tk.Button(top, text="저장하기", command=save_char, bg="blue", fg="white", font=("Malgun Gothic", 12, "bold")).pack(pady=20)
+        tk.Button(top, text="저장하기", command=save_char, bg="blue", fg="white", font=(FONT, 12, "bold")).pack(pady=20)
 
     # Removed old browse_image helper as it is now local function browse_and_preview
 
@@ -367,11 +356,29 @@ class MissionBoardApp:
         idx = sel[0]
         char = self.characters[idx]
         
+        if len(self.characters) <= 1:
+            messagebox.showwarning("주의", "최소 한 명의 캐릭터는 남겨두어야 합니다.")
+            return
+
         if messagebox.askyesno("삭제 확인", f"'{char['name']}' 캐릭터를 삭제하시겠습니까?"):
             del self.characters[idx]
             save_json(CHARACTERS_FILE, self.characters)
+            self.remove_orphan_custom_image(char.get("image", ""))
             self.load_character_list()
             messagebox.showinfo("삭제", "삭제되었습니다.")
+
+    def remove_orphan_custom_image(self, image_name):
+        """Deletes a user-uploaded (custom_*) image once no character references it."""
+        if not image_name.startswith("custom_"):
+            return
+        if any(c.get("image") == image_name for c in self.characters):
+            return
+        try:
+            path = os.path.join(ASSETS_DIR, image_name)
+            if os.path.exists(path):
+                os.remove(path)
+        except Exception as e:
+            print(f"Failed to remove custom image {image_name}: {e}")
 
 def run_settings_standalone():
     root = tk.Tk()

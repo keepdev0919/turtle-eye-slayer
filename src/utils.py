@@ -1,11 +1,27 @@
 import os
 import sys
 import json
+import copy
 import shutil
+import plistlib
+import time
 from pathlib import Path
 
 # Application Constants
 APP_NAME = "DemonSlayerHealth"
+BUNDLE_ID = "com.demon_slayer.health"
+DEFAULT_MINUTES = [0, 30]
+
+# 팝업 프로세스가 "설정 열기"를 요청할 때 사용하는 종료 코드
+POPUP_EXIT_OPEN_SETTINGS = 3
+
+# 플랫폼별 한글 글꼴 (Tk는 없는 글꼴명을 주면 기본 글꼴로 대체하지만, 명시적으로 지정)
+if sys.platform == "darwin":
+    FONT_FAMILY = "Apple SD Gothic Neo"
+elif sys.platform == "win32":
+    FONT_FAMILY = "Malgun Gothic"
+else:
+    FONT_FAMILY = "DejaVu Sans"
 
 def get_resource_base_path():
     """Returns the base path for resources (source assets)."""
@@ -29,7 +45,6 @@ def get_app_data_path():
 
 # 1. Paths
 PROJECT_ROOT = get_resource_base_path()
-BASE_DIR = PROJECT_ROOT # Alias for backward compatibility
 APP_DATA_DIR = get_app_data_path()
 
 # Determine where to READ/WRITE data
@@ -38,7 +53,7 @@ ASSETS_DIR = os.path.join(APP_DATA_DIR, "assets")
 DATA_DIR = os.path.join(APP_DATA_DIR, "data")
 CONFIG_FILE = os.path.join(DATA_DIR, "config.json")
 CHARACTERS_FILE = os.path.join(DATA_DIR, "characters.json")
-SETTINGS_APP = os.path.join(PROJECT_ROOT, "환경설정.app") # This might change with single app, but keep for now
+BUNDLED_ASSETS_DIR = os.path.join(PROJECT_ROOT, "assets")
 
 def get_asset_path(filename):
     return os.path.join(ASSETS_DIR, filename)
@@ -107,65 +122,105 @@ exercise_data = [
 ]
 
 def load_json(filepath, default_value):
+    """Reads a JSON file. Returns default_value if the file is missing or unreadable."""
     if not os.path.exists(filepath):
         return default_value
     try:
-        with open(filepath, "r") as f:
+        with open(filepath, "r", encoding="utf-8") as f:
             return json.load(f)
-    except:
+    except Exception as e:
+        print(f"Error reading JSON ({filepath}): {e}")
         return default_value
 
 def save_json(filepath, data):
     try:
-        if not os.path.exists(os.path.dirname(filepath)):
-            os.makedirs(os.path.dirname(filepath))
-        with open(filepath, "w", encoding="utf-8") as f: # Added encoding for non-ASCII characters
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        with open(filepath, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, ensure_ascii=False)
     except Exception as e:
         print(f"Error saving JSON: {e}")
 
+def sync_default_assets():
+    """Copies bundled default images that are missing from the user's assets folder.
+
+    Existing files are never overwritten, so user-modified images are preserved.
+    This also restores images the user deleted and adds images introduced by app updates.
+    """
+    os.makedirs(ASSETS_DIR, exist_ok=True)
+    if not os.path.exists(BUNDLED_ASSETS_DIR):
+        print(f"Warning: Source assets not found at {BUNDLED_ASSETS_DIR}")
+        return
+    for item in os.listdir(BUNDLED_ASSETS_DIR):
+        if not item.lower().endswith(".png"):
+            continue
+        dst = os.path.join(ASSETS_DIR, item)
+        if not os.path.exists(dst):
+            shutil.copy2(os.path.join(BUNDLED_ASSETS_DIR, item), dst)
+
 def initialize_app_data():
     """Checks and initializes the Application Support folder."""
     print(f"Checking data integrity in: {APP_DATA_DIR}")
-    
-    # 1. Ensure Directories Exist
-    if not os.path.exists(ASSETS_DIR):
-        print("Assets folder missing. Creating and copying defaults...")
-        os.makedirs(ASSETS_DIR, exist_ok=True)
-        
-        # Source Assets Path
-        source_assets = os.path.join(PROJECT_ROOT, "assets")
-        
-        # Copy all pngs
-        if os.path.exists(source_assets):
-            for item in os.listdir(source_assets):
-                if item.endswith(".png"):
-                    s = os.path.join(source_assets, item)
-                    d = os.path.join(ASSETS_DIR, item)
-                    shutil.copy2(s, d)
-        else:
-            print(f"Warning: Source assets not found at {source_assets}")
-            
-    if not os.path.exists(DATA_DIR):
-        os.makedirs(DATA_DIR, exist_ok=True)
-        
-    # 2. Ensure JSON files exist
+
+    sync_default_assets()
+    os.makedirs(DATA_DIR, exist_ok=True)
+
     if not os.path.exists(CHARACTERS_FILE):
         print("Characters file missing. Initializing...")
         save_json(CHARACTERS_FILE, DEFAULT_CHARACTERS)
-        
+
     if not os.path.exists(CONFIG_FILE):
         print("Config file missing. Initializing...")
-        save_json(CONFIG_FILE, {"selected_minutes": [0, 30]})
+        save_json(CONFIG_FILE, {"selected_minutes": list(DEFAULT_MINUTES)})
+
+def get_default_characters():
+    """Returns a fresh copy so callers can never mutate the module-level defaults."""
+    return copy.deepcopy(DEFAULT_CHARACTERS)
 
 def get_character_data():
-    # Always load from AppData
-    data = load_json(CHARACTERS_FILE, None)
-    if not data:
-        # If still empty for some reason, re-save defaults
+    """Loads the user's character list.
+
+    - Missing file  -> defaults are written and returned.
+    - Corrupt file  -> the broken file is backed up (never silently overwritten), then defaults are written.
+    - Empty list    -> defaults are returned without touching the user's file.
+    """
+    if not os.path.exists(CHARACTERS_FILE):
         save_json(CHARACTERS_FILE, DEFAULT_CHARACTERS)
-        return DEFAULT_CHARACTERS
+        return get_default_characters()
+
+    try:
+        with open(CHARACTERS_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        if not isinstance(data, list):
+            raise ValueError("characters.json must contain a list")
+    except Exception as e:
+        backup = f"{CHARACTERS_FILE}.corrupt-{int(time.time())}"
+        print(f"characters.json is unreadable ({e}). Backing up to {backup} and restoring defaults.")
+        try:
+            shutil.move(CHARACTERS_FILE, backup)
+        except Exception as move_err:
+            print(f"Backup failed: {move_err}")
+        save_json(CHARACTERS_FILE, DEFAULT_CHARACTERS)
+        return get_default_characters()
+
+    if not data:
+        return get_default_characters()
     return data
+
+def get_schedule_minutes():
+    """Returns the list of minutes (0-59) at which the reminder fires every hour."""
+    config = load_json(CONFIG_FILE, {"selected_minutes": list(DEFAULT_MINUTES)})
+    minutes = config.get("selected_minutes") if isinstance(config, dict) else None
+    if not isinstance(minutes, list):
+        return list(DEFAULT_MINUTES)
+    valid = sorted({int(m) for m in minutes if isinstance(m, int) and 0 <= m < 60})
+    return valid or list(DEFAULT_MINUTES)
+
+def get_config_mtime():
+    """Modification time of config.json (0 if missing). Used to detect schedule changes."""
+    try:
+        return os.path.getmtime(CONFIG_FILE)
+    except OSError:
+        return 0
 
 def get_exercise_data():
     return exercise_data
@@ -173,107 +228,75 @@ def get_exercise_data():
 def get_random_exercises():
     """Returns one random neck and one random eye exercise."""
     import random
-    
+
     neck_exercises = [ex for ex in exercise_data if ex["category"] == "Neck"]
     eye_exercises = [ex for ex in exercise_data if ex["category"] == "Eye"]
-    
+
     # Fallback if empty (though lists are hardcoded above)
     selected_neck = random.choice(neck_exercises) if neck_exercises else None
     selected_eye = random.choice(eye_exercises) if eye_exercises else None
-    
+
     return {
         "neck": selected_neck,
         "eye": selected_eye
     }
 
-def open_settings_ui():
-    """Opens the settings UI (now via direct import or subprocess depending on structure)."""
-    # Ideally should be a callback or subprocess if separated.
-    # For now, let's keep it abstract or use subprocess to the NEW single app with a flag?
-    # Or simply import settings and run it.
-    # NOTE: In the single app structure, this likely calls a function in the main GUI.
-    # For backward compatibility with popup.py:
-    try:
-        # Run settings.py in a separate process for isolation
-        import subprocess
-        python_exe = sys.executable
-        script_path = os.path.join(os.path.dirname(__file__), "settings.py")
-        subprocess.Popen([python_exe, script_path])
-    except Exception as e:
-        print(f"Failed to open settings: {e}")
-
-# Run initialization on import check
-# (Useful so that importing utils ensures folders exist)
-initialize_app_data()
-
 # ==========================================
 # Auto-Launch (Login Item) Logic
 # ==========================================
-LAUNCH_AGENT_Label = "com.demon_slayer.health"
+LAUNCH_AGENT_Label = BUNDLE_ID
 LAUNCH_AGENT_DIR = os.path.join(Path.home(), "Library", "LaunchAgents")
 LAUNCH_AGENT_PATH = os.path.join(LAUNCH_AGENT_DIR, f"{LAUNCH_AGENT_Label}.plist")
+
+def _autolaunch_program_args():
+    """Command line launchd should run to start the dashboard."""
+    if getattr(sys, 'frozen', False):
+        # Production: the bundled executable itself (inside the .app)
+        return [sys.executable]
+    # Development: python + dashboard.py
+    script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard.py")
+    return [sys.executable, script_path]
+
+def _read_autolaunch_args():
+    try:
+        with open(LAUNCH_AGENT_PATH, "rb") as f:
+            return plistlib.load(f).get("ProgramArguments")
+    except Exception:
+        return None
 
 def get_autolaunch_status():
     """Returns True if the plist exists."""
     return os.path.exists(LAUNCH_AGENT_PATH)
 
 def set_autolaunch(enable: bool):
-    """Creates or deletes the Launch Agent plist."""
+    """Creates or deletes the Launch Agent plist. Takes effect from the next login."""
     if enable:
-        # Create Directory if not exists
-        if not os.path.exists(LAUNCH_AGENT_DIR):
-            os.makedirs(LAUNCH_AGENT_DIR, exist_ok=True)
-            
-        # Determine Executable Path
-        if getattr(sys, 'frozen', False):
-            # Production: App Bundle Path (e.g., /Applications/DemonSlayerHealth.app)
-            # sys.executable points to .../Contents/MacOS/Applet
-            # We want to launch the APP Bundle usually "open application.app"
-            # But LaunchAgent usually runs the executable directly.
-            # However, for GUI apps, it's better to run "open -a /Path/To/App.app"
-            # Or direct executable path. Let's use direct executable path for now.
-            target_path = sys.executable 
-            args = [target_path]
-        else:
-            # Development: Python + Dashboard Script
-            python_exe = sys.executable
-            # Must point to dashboard.py 
-            script_path = os.path.join(os.path.dirname(__file__), "dashboard.py")
-            target_path = python_exe
-            args = [python_exe, script_path]
-
-        # Create Plist Content
-        # We use a simple template
-        plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-    <key>Label</key>
-    <string>{LAUNCH_AGENT_Label}</string>
-    <key>ProgramArguments</key>
-    <array>
-"""
-        for arg in args:
-            plist_content += f"        <string>{arg}</string>\n"
-            
-        plist_content += """    </array>
-    <key>RunAtLoad</key>
-    <true/>
-</dict>
-</plist>"""
-
+        plist = {
+            "Label": LAUNCH_AGENT_Label,
+            "ProgramArguments": _autolaunch_program_args(),
+            "RunAtLoad": True,
+        }
         try:
-            with open(LAUNCH_AGENT_PATH, "w", encoding="utf-8") as f:
-                f.write(plist_content)
+            os.makedirs(LAUNCH_AGENT_DIR, exist_ok=True)
+            with open(LAUNCH_AGENT_PATH, "wb") as f:
+                plistlib.dump(plist, f)
             print(f"Auto-launch enabled. Plist created at {LAUNCH_AGENT_PATH}")
         except Exception as e:
             print(f"Failed to enable auto-launch: {e}")
-            
     else:
-        # Disable (Delete Plist)
         if os.path.exists(LAUNCH_AGENT_PATH):
             try:
                 os.remove(LAUNCH_AGENT_PATH)
                 print("Auto-launch disabled. Plist removed.")
             except Exception as e:
                 print(f"Failed to disable auto-launch: {e}")
+
+def sync_autolaunch():
+    """If auto-launch is enabled but the plist points at an old location (the app was moved),
+    rewrite it so it keeps working. Returns the current enabled state."""
+    if not get_autolaunch_status():
+        return False
+    if _read_autolaunch_args() != _autolaunch_program_args():
+        print("Auto-launch plist is stale (app moved?). Rewriting...")
+        set_autolaunch(True)
+    return True

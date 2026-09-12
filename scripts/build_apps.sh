@@ -18,17 +18,39 @@ elif [ -f "assets/app_icon.png" ]; then
 fi
 
 # 3. Build Single App
-echo "Building consolidated application: 귀살대 건강 관리..."
+# NOTE: The internal executable must have an ASCII name. macOS `codesign` crashes (SIGBUS)
+# on a non-ASCII executable name, which leaves the bundle unsealed and Finder/`open`
+# refuses to launch it. The user-facing name is restored below via Info.plist and the
+# bundle folder name.
+INTERNAL_NAME="DemonSlayerHealth"
+DISPLAY_NAME="귀살대 건강 관리"
+
+echo "Building consolidated application: $DISPLAY_NAME..."
 python3 -m PyInstaller --noconsole --windowed $ICON_OPT \
+    --osx-bundle-identifier "com.demon_slayer.health" \
     --add-data "assets:assets" \
     --add-data "data:data" \
-    --name "귀살대 건강 관리" src/dashboard.py
+    --name "$INTERNAL_NAME" src/dashboard.py
 
-# 4. Move to root
+APP="dist/$INTERNAL_NAME.app"
+
+# 4. Restore the Korean display name (Dock, menu bar, window switcher)
+/usr/libexec/PlistBuddy -c "Set :CFBundleName $DISPLAY_NAME" "$APP/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $DISPLAY_NAME" "$APP/Contents/Info.plist"
+
+# 5. Re-sign (Info.plist changed) and verify the seal
+codesign --force --deep --sign - "$APP"
+if codesign --verify --deep --strict "$APP"; then
+    echo "Code signature OK."
+else
+    echo "WARNING: code signature verification failed. Finder may refuse to open the app."
+fi
+
+# 6. Move to root under the user-facing name
 echo "Moving app to project root..."
-mv dist/*.app .
+mv "$APP" "./$DISPLAY_NAME.app"
 
-# 5. Final Cleanup
+# 7. Final Cleanup
 rm -rf build dist *.spec
 
-echo "Build complete. '귀살대 건강 관리.app' is ready."
+echo "Build complete. '$DISPLAY_NAME.app' is ready."

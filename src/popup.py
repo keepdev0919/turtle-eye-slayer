@@ -5,6 +5,8 @@ import os
 from PIL import Image, ImageTk
 import utils
 
+FONT = utils.FONT_FAMILY
+
 # Visual Novel Style Dimensions
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 500
@@ -15,6 +17,13 @@ def show_popup():
     # Get both Eye and Neck exercises
     exercises = utils.get_random_exercises()
     
+    # Skip characters whose image file is missing instead of crashing the popup
+    available = [c for c in character_data_list if os.path.exists(utils.get_asset_path(c.get("image", "")))]
+    missing = len(character_data_list) - len(available)
+    if missing:
+        print(f"Warning: {missing} character(s) skipped because their image is missing.")
+    character_data_list = available
+
     if not character_data_list or not exercises["eye"]:
         print("No data found")
         sys.exit(1)
@@ -33,9 +42,9 @@ def show_popup():
     # Set Window Icon
     try:
         from PIL import Image, ImageTk
-        icon_path = os.path.join(utils.PROJECT_ROOT, "assets", "app_icon.png")
+        icon_path = os.path.join(utils.BUNDLED_ASSETS_DIR, "app_icon.png")
         if not os.path.exists(icon_path):
-            icon_path = os.path.join(utils.PROJECT_ROOT, "assets", "tanjiro.png")
+            icon_path = os.path.join(utils.BUNDLED_ASSETS_DIR, "tanjiro.png")
         
         if os.path.exists(icon_path):
             img = Image.open(icon_path)
@@ -130,10 +139,10 @@ def show_popup():
     quote_y = name_y + 35
     
     # Name
-    canvas.create_text(text_margin, name_y, anchor=tk.NW, text=character_name, fill="#FFC107", font=("Malgun Gothic", 16, "bold"))
+    canvas.create_text(text_margin, name_y, anchor=tk.NW, text=character_name, fill="#FFC107", font=(FONT, 16, "bold"))
     
     # Quote
-    canvas.create_text(text_margin, quote_y, anchor=tk.NW, text=f'"{quote}"', fill="#FFFFFF", font=("Malgun Gothic", 12, "italic"), width=left_width - (text_margin*2))
+    canvas.create_text(text_margin, quote_y, anchor=tk.NW, text=f'"{quote}"', fill="#FFFFFF", font=(FONT, 12, "italic"), width=left_width - (text_margin*2))
 
     # Keep references to prevent GC
     root.tk_overlay = tk_overlay
@@ -180,7 +189,11 @@ def show_popup():
     
     # MouseWheel Scrolling
     def _on_mousewheel(event):
-        content_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        if sys.platform == "darwin":
+            step = -1 if event.delta > 0 else 1
+        else:
+            step = int(-1 * (event.delta / 120)) or (-1 if event.delta > 0 else 1)
+        content_canvas.yview_scroll(step, "units")
         
     # Linux support (if needed) uses Button-4/5, but focusing on Mac/Windows
     content_canvas.bind_all("<MouseWheel>", _on_mousewheel)
@@ -192,13 +205,13 @@ def show_popup():
         block = tk.Frame(parent, bg="#1a1a1a")
         block.pack(fill="x", padx=PADDING_X, pady=(20, 10))
         
-        lbl_cat = tk.Label(block, text=f"[{category}]", font=("Malgun Gothic", 10, "bold"), fg=color, bg="#1a1a1a", anchor="w")
+        lbl_cat = tk.Label(block, text=f"[{category}]", font=(FONT, 10, "bold"), fg=color, bg="#1a1a1a", anchor="w")
         lbl_cat.pack(fill="x")
         
-        lbl_title = tk.Label(block, text=title, font=("Malgun Gothic", 12, "bold"), fg="white", bg="#1a1a1a", anchor="w", wraplength=right_width-60)
+        lbl_title = tk.Label(block, text=title, font=(FONT, 12, "bold"), fg="white", bg="#1a1a1a", anchor="w", wraplength=right_width-60)
         lbl_title.pack(fill="x", pady=(2, 5))
         
-        lbl_desc = tk.Label(block, text=desc, font=("Malgun Gothic", 10), fg="#cccccc", bg="#1a1a1a", anchor="w", justify="left", wraplength=right_width-60)
+        lbl_desc = tk.Label(block, text=desc, font=(FONT, 10), fg="#cccccc", bg="#1a1a1a", anchor="w", justify="left", wraplength=right_width-60)
         lbl_desc.pack(fill="x")
         
         return block
@@ -241,8 +254,9 @@ def show_popup():
     def on_confirm():
         root.destroy()
     def on_settings():
+        # The dashboard process watches our exit code and opens its settings window.
         root.destroy()
-        utils.open_settings_ui()
+        sys.exit(utils.POPUP_EXIT_OPEN_SETTINGS)
 
     # Settings Button
     HoverButton(
@@ -252,7 +266,7 @@ def show_popup():
         bg="#2D2D2D", 
         fg="#888888", 
         hover_bg="#3ea6ff",
-        font=("Malgun Gothic", 10),
+        font=(FONT, 10),
         padx=12, pady=8
     ).pack(side="left")
 
@@ -264,7 +278,7 @@ def show_popup():
         bg="#4CAF50", 
         fg="white", 
         hover_bg="#45a049", 
-        font=("Malgun Gothic", 11, "bold"),
+        font=(FONT, 11, "bold"),
         padx=20, pady=8
     ).pack(side="right")
 

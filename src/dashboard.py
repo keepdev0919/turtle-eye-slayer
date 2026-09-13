@@ -9,6 +9,7 @@ import os
 import utils
 import settings
 import popup # Ensure popup is imported
+import menubar
 
 FONT = utils.FONT_FAMILY
 
@@ -147,13 +148,14 @@ def run_scheduler():
     print("Scheduler thread exited.")
 
 class DashboardApp:
-    def __init__(self, root):
+    def __init__(self, root, start_hidden=False):
         self.root = root
         self.root.title("귀살대 작전 본부")
         self.root.geometry("800x600")
         self.root.resizable(False, False)
         self.settings_window = None
         self._handled_popup = None
+        self.menubar = None
         
         # Set Window Icon
         self.set_window_icon()
@@ -190,6 +192,7 @@ class DashboardApp:
 
         # 4. Auto-Launch Checkbox (self-heals a stale plist if the app was moved)
         self.auto_launch_var = tk.BooleanVar(value=utils.sync_autolaunch())
+        self.auto_launch_var.trace_add("write", lambda *_: self._sync_menubar())
         chk = tk.Checkbutton(root, text="맥북 시작 시 본부 자동 연결", variable=self.auto_launch_var, command=self.toggle_autolaunch,
                              font=(FONT, 12, "bold"), fg="white", bg="black", selectcolor="black",
                              activebackground="black", activeforeground="white", highlightthickness=0)
@@ -207,9 +210,17 @@ class DashboardApp:
             except Exception:
                 pass
 
+        # Menu bar icon (macOS). The app runs as a background app (LSUIElement) in the
+        # bundle, so this icon is the way to reach the dashboard once the window is closed.
+        self.menubar = menubar.create_menubar(self)
+
         # Initial Logic
         self.toggle_scheduler()
         self.root.after(1000, self.poll_popup)
+        if start_hidden:
+            self.root.withdraw()
+        else:
+            self.show_window()
 
     def load_assets(self):
         """Loads images using PIL."""
@@ -266,6 +277,22 @@ class DashboardApp:
                 stop_event.clear()
                 scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
                 scheduler_thread.start()
+        self._sync_menubar()
+
+    # --- helpers used by the menu bar ---
+    def is_scheduler_running(self):
+        return is_running
+
+    def preview(self):
+        launch_popup(force=True)
+
+    def set_autolaunch(self, enabled):
+        utils.set_autolaunch(enabled)
+        self.auto_launch_var.set(utils.get_autolaunch_status())
+
+    def _sync_menubar(self):
+        if self.menubar is not None:
+            self.menubar.refresh()
 
     def poll_popup(self):
         """Watches the popup process; when it exits asking for settings, open them here."""
@@ -278,16 +305,16 @@ class DashboardApp:
         self.root.after(1000, self.poll_popup)
 
     def toggle_autolaunch(self):
-        enabled = self.auto_launch_var.get()
-        utils.set_autolaunch(enabled)
+        self.set_autolaunch(self.auto_launch_var.get())
 
     def hide_window(self):
-        """Hides the window instead of closing it."""
+        """Hides the window instead of closing it (reopen from the menu bar icon)."""
         self.root.withdraw()
         print("Dashboard hidden to background. Scheduler is still running.")
 
     def show_window(self):
         """Shows the window and brings it to front."""
+        menubar.activate_app()
         self.root.deiconify()
         self.root.lift()
         self.root.attributes('-topmost', True)
@@ -302,6 +329,8 @@ class DashboardApp:
     def cleanup_and_exit(self):
         stop_event.set()
         terminate_popup()
+        if self.menubar is not None:
+            self.menubar.remove()
         self.root.destroy()
         sys.exit(0)
 
@@ -324,7 +353,8 @@ if __name__ == "__main__":
         else:
             # Dashboard Mode
             root = tk.Tk()
-            app = DashboardApp(root)
+            # --hidden: used by the login auto-launch so only the menu bar icon appears
+            app = DashboardApp(root, start_hidden="--hidden" in sys.argv)
             root.mainloop()
             stop_event.set()
     except Exception as e:

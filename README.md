@@ -17,7 +17,7 @@
     - 알림 스케줄러의 시작/중단 제어.
     - 실시간 상태 표시 및 미리보기 기능.
     - 환경 설정 및 자동 실행 옵션 관리.
-- **📥 백그라운드 상주**: 창을 닫아도 Dock(macOS)에 상주하며 임무를 계속 수행.
+- **📥 메뉴 막대 상주**: Dock 아이콘 없이 화면 상단 메뉴 막대 아이콘으로 상주. 창을 닫아도 임무를 계속 수행하며, 아이콘 메뉴에서 본부 열기/임무 시작·중지/미리보기/환경 설정/종료 가능.
 - **⚙️ 완전한 커스터마이징**: 사용자가 직접 대원 이미지와 대사를 추가/수정 가능.
 
 ---
@@ -26,6 +26,7 @@
 - **Language**: Python 3.x
 - **GUI Framework**: Tkinter
 - **Image Processing**: Pillow (PIL)
+- **Menu Bar Icon**: pyobjc (AppKit NSStatusItem, macOS 전용)
 - **Task Scheduling**: schedule
 - **Distribution**: PyInstaller (macOS `.app` Bundle)
 
@@ -69,6 +70,7 @@ sh scripts/build_apps.sh
 .
 ├── src/                # 소스 코드
 │   ├── dashboard.py    # 메인 작전 본부 (GUI, 스케줄러 스레드, `--popup` 인자로 팝업 프로세스 실행)
+│   ├── menubar.py      # macOS 메뉴 막대 아이콘 (pyobjc)
 │   ├── settings.py     # 대원 및 일정 관리 설정창
 │   ├── popup.py        # 알림 팝업창 (대시보드가 별도 프로세스로 실행)
 │   └── utils.py        # 경로/설정/리소스/자동 실행 유틸리티
@@ -85,7 +87,7 @@ sh scripts/build_apps.sh
   ```bash
   xattr -cr "귀살대 건강 관리.app"
   ```
-- **백그라운드 복구**: 창을 닫아도 프로그램은 계속 실행됩니다. Dock 바에 있는 아이콘을 클릭하면 언제든지 '작전 본부'를 다시 열 수 있습니다.
+- **백그라운드 복구**: 창을 닫아도 프로그램은 계속 실행됩니다. 메뉴 막대의 아이콘 → '작전 본부 열기'로 언제든지 다시 열 수 있습니다. 로그인 자동 실행 시에는 창 없이 메뉴 막대 아이콘만 나타납니다.
 - **사용자 데이터 위치**: `~/Library/Application Support/DemonSlayerHealth/` (설정 `data/`, 이미지 `assets/`). 앱을 업데이트해도 이 폴더의 사용자 수정 내용은 유지되며, 기본 이미지가 빠져 있으면 실행 시 자동으로 채워집니다.
 - **자동 실행**: 체크 시 `~/Library/LaunchAgents/com.demon_slayer.health.plist`가 생성되며 다음 로그인부터 적용됩니다. 앱을 다른 폴더로 옮긴 경우 앱을 한 번 실행하면 경로가 자동 갱신됩니다.
 

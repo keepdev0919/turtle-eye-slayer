@@ -37,6 +37,8 @@ APP="dist/$INTERNAL_NAME.app"
 # 4. Restore the Korean display name (Dock, menu bar, window switcher)
 /usr/libexec/PlistBuddy -c "Set :CFBundleName $DISPLAY_NAME" "$APP/Contents/Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName $DISPLAY_NAME" "$APP/Contents/Info.plist"
+# Background-only app: no Dock icon / Cmd-Tab entry. The menu bar icon is the entry point.
+/usr/libexec/PlistBuddy -c "Add :LSUIElement bool true" "$APP/Contents/Info.plist"
 
 # 5. Re-sign (Info.plist changed) and verify the seal
 codesign --force --deep --sign - "$APP"

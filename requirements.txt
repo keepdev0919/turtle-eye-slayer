@@ -1,3 +1,4 @@
 schedule
 Pillow
 pyinstaller
+pyobjc-framework-Cocoa; sys_platform == "darwin"

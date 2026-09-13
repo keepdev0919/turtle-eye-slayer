@@ -250,12 +250,13 @@ LAUNCH_AGENT_PATH = os.path.join(LAUNCH_AGENT_DIR, f"{LAUNCH_AGENT_Label}.plist"
 
 def _autolaunch_program_args():
     """Command line launchd should run to start the dashboard."""
+    # --hidden: start with only the menu bar icon (no dashboard window) at login
     if getattr(sys, 'frozen', False):
         # Production: the bundled executable itself (inside the .app)
-        return [sys.executable]
+        return [sys.executable, "--hidden"]
     # Development: python + dashboard.py
     script_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard.py")
-    return [sys.executable, script_path]
+    return [sys.executable, script_path, "--hidden"]
 
 def _read_autolaunch_args():
     try:

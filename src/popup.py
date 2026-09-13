@@ -284,7 +284,14 @@ def show_popup():
 
     # Keep references
     root.tk_image = tk_image 
-    
+
+    # The bundle is a background-only app (LSUIElement); activate so the popup shows on top.
+    try:
+        import menubar
+        menubar.activate_app()
+    except Exception as e:
+        print(f"activate skipped: {e}")
+    root.lift()
     root.mainloop()
 
 if __name__ == "__main__":

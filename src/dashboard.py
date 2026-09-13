@@ -213,12 +213,14 @@ class DashboardApp:
         # Menu bar icon (macOS). The app runs as a background app (LSUIElement) in the
         # bundle, so this icon is the way to reach the dashboard once the window is closed.
         self.menubar = menubar.create_menubar(self)
+        menubar.hide_dock_icon()
+        menubar.install_dock_guard(self.root)
 
         # Initial Logic
         self.toggle_scheduler()
         self.root.after(1000, self.poll_popup)
         if start_hidden:
-            self.root.withdraw()
+            self.hide_window()
         else:
             self.show_window()
 
@@ -310,6 +312,7 @@ class DashboardApp:
     def hide_window(self):
         """Hides the window instead of closing it (reopen from the menu bar icon)."""
         self.root.withdraw()
+        menubar.hide_dock_icon()
         print("Dashboard hidden to background. Scheduler is still running.")
 
     def show_window(self):
@@ -319,6 +322,7 @@ class DashboardApp:
         self.root.lift()
         self.root.attributes('-topmost', True)
         self.root.attributes('-topmost', False)
+        menubar.hide_dock_icon()
         print("Dashboard restored.")
 
     def quit_app(self):
@@ -343,6 +347,7 @@ class DashboardApp:
         top = tk.Toplevel(self.root)
         self.settings_window = top
         settings.MissionBoardApp(top)
+        menubar.hide_dock_icon()
 
 if __name__ == "__main__":
     try:

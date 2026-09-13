@@ -38,6 +38,14 @@ def show_popup():
     
     root = tk.Tk()
     root.title(f"귀살대 건강 관리")
+
+    # Same bundle as the dashboard: keep this process out of the Dock as well.
+    try:
+        import menubar
+        menubar.hide_dock_icon()
+        menubar.install_dock_guard(root)
+    except Exception as e:
+        print(f"dock hide skipped: {e}")
     
     # Set Window Icon
     try:
@@ -289,6 +297,7 @@ def show_popup():
     try:
         import menubar
         menubar.activate_app()
+        menubar.hide_dock_icon()
     except Exception as e:
         print(f"activate skipped: {e}")
     root.lift()

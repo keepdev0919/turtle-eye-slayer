@@ -14,12 +14,20 @@ try:
     from AppKit import (
         NSApplication, NSImage, NSMenu, NSMenuItem, NSObject, NSStatusBar,
         NSVariableStatusItemLength, NSOnState, NSOffState,
+        NSApplicationActivationPolicyAccessory,
     )
     AVAILABLE = sys.platform == "darwin"
 except Exception:  # pragma: no cover - non-mac or pyobjc missing
     AVAILABLE = False
 
 ICON_SIZE = 18
+DOCK_GUARD_INTERVAL_MS = 300
+
+
+def _nsapp():
+    # Must only be called AFTER tkinter.Tk() exists: Tk installs its own NSApplication
+    # subclass, and creating a plain NSApplication first makes Tk crash.
+    return NSApplication.sharedApplication()
 
 
 def activate_app():
@@ -27,9 +35,37 @@ def activate_app():
     if not AVAILABLE:
         return
     try:
-        NSApplication.sharedApplication().activateIgnoringOtherApps_(True)
+        _nsapp().activateIgnoringOtherApps_(True)
     except Exception as e:
         print(f"activate_app failed: {e}")
+
+
+def hide_dock_icon():
+    """Switch to the 'accessory' activation policy: no Dock icon, no Cmd-Tab entry.
+
+    LSUIElement in Info.plist is not enough because Tk forces the 'regular' policy at
+    init and again whenever it maps/unmaps a window. Call this after every show/hide."""
+    if not AVAILABLE:
+        return
+    try:
+        app = _nsapp()
+        if app.activationPolicy() != NSApplicationActivationPolicyAccessory:
+            app.setActivationPolicy_(NSApplicationActivationPolicyAccessory)
+    except Exception as e:
+        print(f"hide_dock_icon failed: {e}")
+
+
+def install_dock_guard(root):
+    """Periodically re-hides the Dock icon, catching resets Tk makes on its own."""
+    if not AVAILABLE:
+        return
+    def tick():
+        hide_dock_icon()
+        try:
+            root.after(DOCK_GUARD_INTERVAL_MS, tick)
+        except Exception:
+            pass  # root destroyed
+    tick()
 
 
 if AVAILABLE:

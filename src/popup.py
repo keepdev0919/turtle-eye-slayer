@@ -2,7 +2,7 @@ import tkinter as tk
 import random
 import sys
 import os
-from PIL import Image, ImageTk
+from PIL import Image, ImageOps, ImageTk
 import utils
 
 FONT = utils.FONT_FAMILY
@@ -37,7 +37,7 @@ def show_popup():
     quote = random.choice(char_data["quotes"])
     
     root = tk.Tk()
-    root.title(f"귀살대 건강 관리")
+    root.title(utils.APP_DISPLAY_NAME)
 
     # Same bundle as the dashboard: keep this process out of the Dock as well.
     try:
@@ -52,7 +52,7 @@ def show_popup():
         from PIL import Image, ImageTk
         icon_path = os.path.join(utils.BUNDLED_ASSETS_DIR, "app_icon.png")
         if not os.path.exists(icon_path):
-            icon_path = os.path.join(utils.BUNDLED_ASSETS_DIR, "tanjiro.png")
+            icon_path = os.path.join(utils.BUNDLED_ASSETS_DIR, "zoo_quokka.jpg")
         
         if os.path.exists(icon_path):
             img = Image.open(icon_path)
@@ -67,11 +67,16 @@ def show_popup():
     root.overrideredirect(True) # Remove Title Bar
     root.attributes('-topmost', True)
     
-    screen_width = root.winfo_screenwidth()
-    screen_height = root.winfo_screenheight()
-    x_cordinate = int((screen_width / 2) - (WINDOW_WIDTH / 2))
-    y_cordinate = int((screen_height / 2) - (WINDOW_HEIGHT / 2))
-    root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{x_cordinate}+{y_cordinate}")
+    def center_window():
+        root.update_idletasks()
+        w = root.winfo_width() if root.winfo_width() > 1 else WINDOW_WIDTH
+        h = root.winfo_height() if root.winfo_height() > 1 else WINDOW_HEIGHT
+        x = int(root.winfo_screenwidth() / 2 - w / 2)
+        y = int(root.winfo_screenheight() / 2 - h / 2)
+        root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}+{x}+{y}")
+    center_window()
+    # Re-center after the window is actually mapped: macOS may clamp the first geometry request.
+    root.after(80, center_window)
 
     # Drag Logic
     def start_move(event):
@@ -119,7 +124,9 @@ def show_popup():
         # Let's simple resize to filling the left area 
         # Actually better to retain aspect ratio and crop top/bottom or left/right
         # Simple implementation: Resize to (left_width, WINDOW_HEIGHT)
-        pil_image = pil_image.resize((left_width, WINDOW_HEIGHT), Image.Resampling.LANCZOS)
+        pil_image = ImageOps.exif_transpose(pil_image).convert("RGB")
+        # Fill the left panel while keeping the aspect ratio (center crop, slightly favoring the top).
+        pil_image = ImageOps.fit(pil_image, (left_width, WINDOW_HEIGHT), Image.Resampling.LANCZOS, centering=(0.5, 0.4))
         tk_image = ImageTk.PhotoImage(pil_image)
         
         canvas.create_image(0, 0, anchor=tk.NW, image=tk_image)
@@ -226,14 +233,14 @@ def show_popup():
 
     # 1. Eye Block
     if exercises["eye"]:
-        create_exercise_block(scroll_frame, "눈 건강", exercises["eye"]["title"], exercises["eye"]["description"], "#1E90FF")
+        create_exercise_block(scroll_frame, "눈 쉬게 하기", exercises["eye"]["title"], exercises["eye"]["description"], "#1E90FF")
         
     # Separator
     tk.Frame(scroll_frame, bg="#333333", height=1).pack(fill="x", padx=PADDING_X, pady=5)
 
     # 2. Neck Block
     if exercises["neck"]:
-        create_exercise_block(scroll_frame, "거북목 탈출", exercises["neck"]["title"], exercises["neck"]["description"], "#FF8C00")
+        create_exercise_block(scroll_frame, "목·어깨 펴기", exercises["neck"]["title"], exercises["neck"]["description"], "#FF8C00")
 
     # Separator (Bottom padding for scroll)
     tk.Frame(scroll_frame, bg="#333333", height=1).pack(fill="x", padx=PADDING_X, pady=20)
@@ -281,7 +288,7 @@ def show_popup():
     # Confirm Button
     HoverButton(
         bottom_bar, 
-        text="✓ 임무 완료", 
+        text="✓ 했다!", 
         command=on_confirm, 
         bg="#4CAF50", 
         fg="white", 

@@ -87,8 +87,8 @@ if AVAILABLE:
 
         def refresh(self):
             running = self.app.is_scheduler_running()
-            self.items["status"].setTitle_("⚔️ 작전 수행 중" if running else "⚠️ 작전 중지")
-            self.items["toggle"].setTitle_("임무 중지" if running else "임무 시작")
+            self.items["status"].setTitle_("🐾 동물들 순찰 중" if running else "💤 순찰 쉬는 중")
+            self.items["toggle"].setTitle_("순찰 중지" if running else "순찰 시작")
             self.items["autolaunch"].setState_(NSOnState if utils.get_autolaunch_status() else NSOffState)
 
         # --- actions (selector names end with ':' -> one trailing underscore) ---
@@ -134,16 +134,16 @@ class MenuBar:
             self.controller.items[key] = item
             return item
 
-        add("status", "작전 준비 완료", None, enabled=False)
+        add("status", "동물원 준비 완료", None, enabled=False)
         menu.addItem_(NSMenuItem.separatorItem())
-        add("toggle", "임무 시작", "toggleScheduler:")
-        add("preview", "미리보기", "preview:")
+        add("toggle", "순찰 시작", "toggleScheduler:")
+        add("preview", "미리보기 (동물 한 마리 호출)", "preview:")
         menu.addItem_(NSMenuItem.separatorItem())
-        add("dashboard", "작전 본부 열기", "openDashboard:")
+        add("dashboard", "관리실 열기", "openDashboard:")
         add("settings", "환경 설정...", "openSettings:")
-        add("autolaunch", "맥북 시작 시 자동 연결", "toggleAutolaunch:")
+        add("autolaunch", "맥 시작 시 자동 개장", "toggleAutolaunch:")
         menu.addItem_(NSMenuItem.separatorItem())
-        add("quit", "본부 완전 종료", "quit:")
+        add("quit", "동물원 완전 종료", "quit:")
 
         self.status_item.setMenu_(menu)
         self.menu = menu
@@ -151,17 +151,17 @@ class MenuBar:
 
     def _set_icon(self):
         button = self.status_item.button()
-        icon_path = os.path.join(utils.BUNDLED_ASSETS_DIR, "app_icon.png")
+        icon_path = os.path.join(utils.BUNDLED_ASSETS_DIR, "menubar_icon.png")
         try:
             image = NSImage.alloc().initWithContentsOfFile_(icon_path)
             if image is None:
                 raise ValueError(f"cannot load {icon_path}")
             image.setSize_((ICON_SIZE, ICON_SIZE))
             button.setImage_(image)
-            button.setToolTip_("귀살대 건강 관리")
+            button.setToolTip_(utils.APP_DISPLAY_NAME)
         except Exception as e:
             print(f"Menu bar icon fallback (text): {e}")
-            button.setTitle_("⚔️")
+            button.setTitle_("🐾")
 
     def is_visible(self):
         """True once AppKit has placed the item in the menu bar (window has a size)."""

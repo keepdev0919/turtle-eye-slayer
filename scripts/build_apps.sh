@@ -1,9 +1,9 @@
 #!/bin/bash
-# Consolidated build script for "귀살대 건강 관리"
+# Build script for "책상 동물원" (DeskZoo)
 
 # 1. Clean up old builds
 echo "Cleaning up..."
-rm -rf "작전 개시.app" "환경설정.app" "UI 테스트.app" "귀살대 건강 관리.app"
+rm -rf "책상 동물원.app" "귀살대 건강 관리.app"
 rm -rf build dist *.spec
 
 # 2. Icon Handling
@@ -22,12 +22,12 @@ fi
 # on a non-ASCII executable name, which leaves the bundle unsealed and Finder/`open`
 # refuses to launch it. The user-facing name is restored below via Info.plist and the
 # bundle folder name.
-INTERNAL_NAME="DemonSlayerHealth"
-DISPLAY_NAME="귀살대 건강 관리"
+INTERNAL_NAME="DeskZoo"
+DISPLAY_NAME="책상 동물원"
 
 echo "Building consolidated application: $DISPLAY_NAME..."
 python3 -m PyInstaller --noconsole --windowed $ICON_OPT \
-    --osx-bundle-identifier "com.demon_slayer.health" \
+    --osx-bundle-identifier "com.tenection.deskzoo" \
     --add-data "assets:assets" \
     --add-data "data:data" \
     --name "$INTERNAL_NAME" src/dashboard.py

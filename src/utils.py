@@ -8,9 +8,20 @@ import time
 from pathlib import Path
 
 # Application Constants
-APP_NAME = "DemonSlayerHealth"
-BUNDLE_ID = "com.demon_slayer.health"
+APP_NAME = "DeskZoo"
+APP_DISPLAY_NAME = "책상 동물원"
+BUNDLE_ID = "com.tenection.deskzoo"
 DEFAULT_MINUTES = [0, 30]
+
+# 이전 컨셉(귀살대 건강 관리)에서 넘어온 사용자 데이터를 옮기기 위한 식별자
+LEGACY_APP_NAME = "DemonSlayerHealth"
+LEGACY_BUNDLE_ID = "com.demon_slayer.health"
+LEGACY_DEFAULT_IMAGES = {
+    "rengoku.png", "muichiro.png", "tengen.png", "shinobu.png", "akaza.png", "obanai.png", "giyu.png",
+    "gyomei.png", "inosuke.png", "mitsuri.png", "sanemi.png", "tanjiro.png", "zenitsu.png",
+    "bg_dojo.png", "btn_main.png", "btn_sub.png", "sign_wood.png",
+}
+IMAGE_EXTS = (".png", ".jpg", ".jpeg", ".gif")
 
 # 팝업 프로세스가 "설정 열기"를 요청할 때 사용하는 종료 코드
 POPUP_EXIT_OPEN_SETTINGS = 3
@@ -58,67 +69,131 @@ BUNDLED_ASSETS_DIR = os.path.join(PROJECT_ROOT, "assets")
 def get_asset_path(filename):
     return os.path.join(ASSETS_DIR, filename)
 
-# 1. 캐릭터 데이터 (기본값 - 초기 실행 시 사용)
+# 1. 동물 데이터 (기본값 - 초기 실행 시 사용). 사진 출처는 assets/CREDITS.md
+def _a(name, image, *quotes):
+    return {"name": name, "image": image, "quotes": list(quotes)}
+
 DEFAULT_CHARACTERS = [
-    {"name": "렌고쿠 쿄쥬로", "image": "rengoku.png", "quotes": ["마음을 불태워라!! 지금이 기회다!!", "힘든가? 하지만 이겨내야 기둥이 될 수 있다!", "맛있다!! 건강해지는 기분이 맛있다!!"]},
-    {"name": "토키토 무이치로", "image": "muichiro.png", "quotes": ["어라? 방금 뭐 하려고 했더라.. 아, 운동.", "구름처럼 둥둥 떠다니는 목 디스크.. 싫지?", "빨리 해. 기억에서 잊혀지기 전에."]},
-    {"name": "우즈이 텐겐", "image": "tengen.png", "quotes": ["화려하게 움직여라!! 수수한 자세는 질색이다!", "축제다!! 근육이 기뻐하는 축제야!!", "내 아내들도 너보단 자세가 좋을 거다!"]},
-    {"name": "코쵸우 시노부", "image": "shinobu.png", "quotes": ["어라~ 몸이 꽤 뻣뻣하시네요. 독이라도 놔드릴까요?", "웃으면서 운동해요~ 화내면 주름 생겨요.", "부디 제발, 제 말 좀 들어주세요."]},
-    {"name": "아카자", "image": "akaza.png", "quotes": ["약한 자는 싫어한다.. 자세가 구부정한 자는 더 싫다!", "너도 도깨비가 되겠다고 말해라! (건강해지겠다고!)", "파괴살! 라운드 숄더 멸살!"]},
-    {"name": "이구로 오바나이", "image": "obanai.png", "quotes": ["신용할 수 없군.. 그따위 자세로 코딩이라니.", "내 뱀이 너를 조르기 전에 스트레칭해라.", "쥐구멍에라도 숨고 싶은 자세군."]},
-    {"name": "토미오카 기유", "image": "giyu.png", "quotes": ["나는 너희들과 다르다... (자세가 너무 좋다)", "녹슬어 버리면 베이지 않는다. 몸도 마찬가지다.", "집중해라. 그딴 자세로는 아무것도 지킬 수 없다."]},
-    {"name": "히메지마 교메이", "image": "gyomei.png", "quotes": ["나무아미타불... 어찌하여 저런 구부정한 자세를...", "가여운 아이로구나. 스트레칭을 가르쳐주마.", "바른 자세는 바른 마음에서 나오는 법."]},
-    {"name": "하시비라 이노스케", "image": "inosuke.png", "quotes": ["저돌맹진!! 스트레칭도 저돌맹진이다!!", "내 유연함을 봐라! 너는 못하겠지!", "산의 왕은 거북목 따위 걸리지 않아!"]},
-    {"name": "칸로지 미츠리", "image": "mitsuri.png", "quotes": ["꺄아~ 뻣뻣한 모습도 귀여워! 하지만 펴면 더 멋질거야!", "사랑의 호흡! 척추 펴기!", "유연한 사람이 강한 사람이에요♡"]},
-    {"name": "시나즈가와 사네미", "image": "sanemi.png", "quotes": ["어이, 그게 스트레칭이냐? 장난해?", "비실비실한 놈들은 질색이다. 똑바로 펴!", "오니보다 네 자세가 더 흉측하군."]},
-    {"name": "카마도 탄지로", "image": "tanjiro.png", "quotes": ["장남이니까 참을 수 있어! 스트레칭의 고통도!", "전집중 호흡! 바른 자세의 호흡!", "네즈코도 따라할 수 있는 쉬운 운동이야!"]},
-    {"name": "아카츠마 젠이츠", "image": "zenitsu.png", "quotes": ["으아악! 아파! 근육이 찢어질 것 같아!!", "이거 안 하면 죽는거야? 거북목으로 죽는거냐고!!", "네즈코 쨩~ 봐봐! 나 운동하는 거 봐봐!"]}
+    _a("모니터 응시 고양이", "zoo_monitor_cat.jpg",
+       "지금 모니터랑 거리 20cm. 내가 다 봤다.",
+       "화면 속에 답 없다. 눈 떼고 멀리 봐.",
+       "너 그 자세로 세 시간째야. 고개 들어."),
+    _a("책상 박스 고양이", "zoo_box_cat.jpg",
+       "박스에 들어가서 잠깐 쉬어. 나처럼.",
+       "일은 도망 안 가. 근데 네 목은 간다.",
+       "이 박스 비켜달라고? 어깨부터 펴고 말해."),
+    _a("노트북 검수 고양이", "zoo_laptop_cat.jpg",
+       "코드 리뷰 왔다. 1번: 거북목.",
+       "이 커밋 통과. 네 자세는 반려.",
+       "화면 그만 보고 나 좀 봐. 더 예뻐."),
+    _a("퇴근 직전 고양이", "zoo_printer_cat.jpg",
+       "이 표정이 지금 네 표정이다.",
+       "다 녹았네. 기지개 한 번만 켜자.",
+       "퇴근하고 싶지? 일단 눈부터 감아 10초."),
+    _a("키보드 점령 고양이", "zoo_keyboard_cat.jpg",
+       "키보드는 내가 맡는다. 너는 스트레칭.",
+       "타이핑 중단. 이건 명령이다.",
+       "손 치워. 어깨 돌리고 와서 다시 쳐."),
+    _a("커피 감독관 고양이", "zoo_coffee_cat.jpg",
+       "커피가 피로를 풀어주진 않는다. 목 돌려.",
+       "오늘 몇 잔째야? 물 한 컵 추가.",
+       "눈 밑 다크서클 보인다. 멀리 봐."),
+    _a("소리 지르는 고양이", "zoo_yelling_cat.jpg",
+       "야!!! 어깨!!! 내려!!!",
+       "스트레칭 안 하면 계속 소리 지른다.",
+       "지금 네 승모근이 이렇게 비명 중이다."),
+    _a("하품 고양이", "zoo_yawn_cat.jpg",
+       "하품 한 번 크게. 턱 풀린다.",
+       "졸린 거 아니고 뇌에 산소 부족이야.",
+       "입 크게 벌리고 쭉. 창피해도 효과 좋음."),
+    _a("스트레칭 교과서 표범", "zoo_leopard.jpg",
+       "스트레칭은 이렇게 하는 거다. 따라 해.",
+       "등 쭉, 엉덩이 뒤로, 10초. 표범식.",
+       "유연한 놈이 오래 간다. 사냥도 코딩도."),
+    _a("기절한 고양이", "zoo_window_cat.jpg",
+       "이게 네 척추 현재 상태.",
+       "녹아내리기 전에 일어나서 한 바퀴.",
+       "이렇게 누워서 10초. 진짜로. 효과 있음."),
+    _a("이불 속 강아지", "zoo_bed_dog.jpg",
+       "오늘 할 일 다 했다. 아, 아니구나. 그래도 쉬어.",
+       "이불이 부른다. 못 가면 눈이라도 감아.",
+       "퇴근 후의 나. 지금은 어깨만 좀 풀자."),
+    _a("뒤집어진 강아지", "zoo_upside_dog.jpg",
+       "완전 뻗음. 너도 등받이에 기대 봐.",
+       "세상 편하지? 너도 10초만 이렇게.",
+       "고개 뒤로 젖히고 천장 봐. 목 앞쪽 시원함."),
+    _a("거북목 코알라", "zoo_koala.jpg",
+       "이게 거울이다. 턱 당겨.",
+       "코알라도 아는 걸 왜 몰라. 허리 펴.",
+       "하루 20시간 자는 나도 자세는 챙긴다."),
+    _a("쿼카", "zoo_quokka.jpg",
+       "웃어. 입꼬리만 올려도 얼굴 근육 풀린다.",
+       "세상에서 제일 행복한 동물이 시킨다. 스트레칭.",
+       "일 잘 되고 있어. 잠깐 쉬어도 돼."),
+    _a("나무늘보", "zoo_sloth.jpg",
+       "천천히 해도 돼. 근데 목은 지금 펴.",
+       "느리게 숨 쉬어. 4초 들이쉬고 6초 내쉬고.",
+       "급할수록 한 박자 쉬는 게 빠르다."),
+    _a("눈치 보는 퍼그", "zoo_pug_blanket.jpg",
+       "...어깨 올라간 거 알지?",
+       "나도 안다. 이 알림 귀찮은 거. 그래도 해.",
+       "운동 안 하면 이 눈으로 계속 본다."),
+    _a("바닥에 녹은 퍼그", "zoo_pug_floor.jpg",
+       "지금 네 집중력 상태.",
+       "이럴 땐 일어나서 물 한 잔. 진짜 효과 있음.",
+       "바닥이 편하지? 네 허리는 아니다."),
+    _a("선글라스 개", "zoo_sunglass_dog.jpg",
+       "눈 쉬는 중. 너도 20초만 먼 데 봐.",
+       "쿨하게 쉬자. 모니터 밝기도 좀 낮추고.",
+       "눈 깜빡인 지 얼마나 됐어? 다섯 번 세게."),
+    _a("버그 발견 고양이", "zoo_shocked_cat.jpg",
+       "방금 네 자세 보고 놀란 표정이다.",
+       "버그보다 무서운 건 거북목이다.",
+       "눈 이렇게 크게 뜨고 위아래좌우. 안구 운동."),
+    _a("득도한 카피바라", "zoo_capybara.jpg",
+       "급할 거 없다. 숨 한 번 쉬고 가자.",
+       "모든 버그는 결국 고쳐진다. 어깨 내려.",
+       "물속에서 명상 중. 너는 눈 감고 10초."),
+    _a("온천 원숭이", "zoo_onsen_monkey.jpg",
+       "목욕탕 생각나지? 지금은 목 돌리기로 대신.",
+       "따뜻한 손바닥 비벼서 눈 위에 올려 봐.",
+       "쉬는 것도 실력이다. 원숭이도 안다."),
+    _a("세수하는 햄스터", "zoo_hamster.jpg",
+       "눈 비비지 말고 깜빡여. 세게 다섯 번.",
+       "볼에 저장된 간식처럼 피로도 쌓인다. 비워.",
+       "작은 손으로도 세수는 한다. 너도 해."),
+    _a("감시하는 부엉이", "zoo_owl.jpg",
+       "목 270도 돌아가는 나도 스트레칭한다.",
+       "지켜보고 있다. 턱 당기고 등 펴.",
+       "눈 크게 뜨고 멀리. 부엉이식 시력 보호."),
+    _a("모래 위 물개", "zoo_seal.jpg",
+       "오늘의 나. 그래도 등은 펴고 누웠다.",
+       "배 깔고 상체 들기. 물개 자세 10초.",
+       "물개도 쉬는데 네가 왜 안 쉬어."),
+    _a("화상회의 강아지", "zoo_laptop_dog.jpg",
+       "회의 중이라고? 카메라 끄고 어깨 돌려.",
+       "노트북 높이 올려. 눈높이. 나처럼.",
+       "집중 끝났으면 시선 멀리. 창밖 봐."),
 ]
 
-# 2. 운동 데이터 (Neck / Eye 카테고리 분리)
+# 2. 운동 데이터 (Neck / Eye)
 exercise_data = [
-    # [Category: Neck]
-    {
-        "category": "Neck",
-        "title": "🐢 제1형 : 턱 집어넣기",
-        "description": "1. 허리를 펴고 검지를 턱에 댄다.\n2. 턱을 수평으로 뒤로 밀어 '투턱'을 만든다.\n3. 뒷목이 당기는 느낌으로 10초 버텨!"
-    },
-    {
-        "category": "Neck",
-        "title": "🦋 제2형 : 날개뼈 조이기",
-        "description": "1. 팔을 양옆으로 벌려 'W'자를 만든다.\n2. 날개뼈가 서로 닿는 느낌으로 등 뒤를 꽉 조인다.\n3. 가슴을 천장으로 발사하며 10초 유지!"
-    },
-    {
-        "category": "Neck",
-        "title": "🪵 제3형 : 승모근 늘리기",
-        "description": "1. 한 손으로 의자 밑을 잡아 어깨를 고정한다.\n2. 반대 손으로 머리를 잡고 옆으로 지그시 당긴다.\n3. 목 옆선이 찢어지는 시원함을 느껴라. (좌우 10초씩)"
-    },
-    {
-        "category": "Neck",
-        "title": "🌪️ 제4형 : 천장 뚫기",
-        "description": "1. 양손을 쇄골(목 아래 뼈) 위에 포개서 얹고 꾹 누른다.\n2. 손으로 피부를 고정한 채, 천천히 고개를 뒤로 젖혀 천장을 본다.\n3. 입을 다물고 목 앞쪽이 팽팽하게 당기는 걸 느끼며 10초 유지!"
-    },
-    # [Category: Eye]
-    {
-        "category": "Eye",
-        "title": "👁️ 제1형 : 암전과 온기",
-        "description": "1. 양손바닥을 싹싹 비벼서 뜨겁게 마찰열을 낸다.\n2. 따뜻해진 손바닥을 오목하게 만들어 눈을 덮는다 (누르지 마!).\n3. 빛을 완벽히 차단하고 칠흑 같은 어둠 속에서 10초 휴식."
-    },
-    {
-        "category": "Eye",
-        "title": "👀 제2형 : 극한의 눈 굴리기",
-        "description": "1. 고개는 고정. 눈동자만 움직인다.\n2. 위 -> 오른쪽 -> 아래 -> 왼쪽 순서로 극한까지 굴려라.\n3. 시계방향 5회, 반대방향 5회 실시."
-    },
-    {
-        "category": "Eye",
-        "title": "⚡ 제3형 : 강력 깜빡임",
-        "description": "1. 눈을 4초간 '꽉!!' 감는다. (눈물샘을 짜낸다는 느낌)\n2. 눈을 '팟!' 하고 크게 뜬다.\n3. 5번 반복. 안구 건조증에 직빵이다."
-    },
-    {
-        "category": "Eye",
-        "title": "🎱 제4형 : 무한대(∞) 그리기",
-        "description": "1. 눈앞에 거대한 숫자 8이 누워있다고 상상한다.\n2. 눈동자로 그 선을 따라 천천히 움직인다.\n3. 멍청해 보이지만 초점 조절 근육 푸는 데 최고다."
-    }
+    {"category": "Neck", "title": "🐢 턱 당기기",
+     "description": "1. 허리 펴고 검지를 턱에 댄다.\n2. 턱을 수평으로 뒤로 민다. 투턱 만들기.\n3. 뒷목이 당기는 느낌으로 10초."},
+    {"category": "Neck", "title": "🦋 날개뼈 모으기",
+     "description": "1. 팔을 옆으로 벌려 W자.\n2. 날개뼈끼리 닿는 느낌으로 등 뒤를 꽉.\n3. 가슴을 천장으로 열고 10초."},
+    {"category": "Neck", "title": "🪑 승모근 늘리기",
+     "description": "1. 한 손으로 의자 밑을 잡아 어깨 고정.\n2. 반대 손으로 머리를 옆으로 지그시.\n3. 목 옆선이 늘어나는 느낌. 좌우 10초씩."},
+    {"category": "Neck", "title": "☁️ 천장 보기",
+     "description": "1. 양손을 쇄골 위에 포개 꾹 누른다.\n2. 피부를 고정한 채 천천히 고개를 뒤로.\n3. 입 다물고 목 앞쪽이 팽팽해지면 10초."},
+    {"category": "Eye", "title": "🤲 손바닥 찜질",
+     "description": "1. 손바닥을 싹싹 비벼 따뜻하게.\n2. 오목하게 만들어 눈을 덮는다. 누르지 말기.\n3. 완전한 어둠 속에서 10초 휴식."},
+    {"category": "Eye", "title": "👀 눈알 굴리기",
+     "description": "1. 고개는 고정, 눈동자만 움직인다.\n2. 위, 오른쪽, 아래, 왼쪽 끝까지.\n3. 시계방향 5회, 반대 5회."},
+    {"category": "Eye", "title": "⚡ 세게 깜빡이기",
+     "description": "1. 눈을 4초간 꽉 감는다.\n2. 크게 뜬다.\n3. 5번 반복. 안구 건조에 바로 효과."},
+    {"category": "Eye", "title": "♾️ 무한대 그리기",
+     "description": "1. 눈앞에 누운 8자가 있다고 상상.\n2. 눈동자로 그 선을 천천히 따라간다.\n3. 좀 멍청해 보여도 초점 근육 푸는 데 최고."},
 ]
 
 def load_json(filepath, default_value):
@@ -151,16 +226,56 @@ def sync_default_assets():
         print(f"Warning: Source assets not found at {BUNDLED_ASSETS_DIR}")
         return
     for item in os.listdir(BUNDLED_ASSETS_DIR):
-        if not item.lower().endswith(".png"):
+        if not item.lower().endswith(IMAGE_EXTS):
             continue
         dst = os.path.join(ASSETS_DIR, item)
         if not os.path.exists(dst):
             shutil.copy2(os.path.join(BUNDLED_ASSETS_DIR, item), dst)
 
+def migrate_legacy_data():
+    """One-time migration from the old '귀살대 건강 관리' install.
+
+    - Moves the old Application Support folder to the new name.
+    - Drops the old default characters (keeps user-added custom_* ones) and their images.
+    - Replaces the old LaunchAgent plist with the new label, preserving the enabled state.
+    """
+    legacy_dir = os.path.join(os.path.dirname(APP_DATA_DIR), LEGACY_APP_NAME)
+    if os.path.isdir(legacy_dir) and not os.path.exists(APP_DATA_DIR):
+        print(f"Migrating data folder {legacy_dir} -> {APP_DATA_DIR}")
+        try:
+            shutil.move(legacy_dir, APP_DATA_DIR)
+        except Exception as e:
+            print(f"Data folder migration failed: {e}")
+
+    # old default characters / images
+    data = load_json(CHARACTERS_FILE, None)
+    if isinstance(data, list) and any(c.get("image") in LEGACY_DEFAULT_IMAGES for c in data if isinstance(c, dict)):
+        kept = [c for c in data if isinstance(c, dict) and c.get("image") not in LEGACY_DEFAULT_IMAGES]
+        print(f"Replacing {len(data) - len(kept)} legacy characters with the new defaults (kept {len(kept)} custom).")
+        save_json(CHARACTERS_FILE, get_default_characters() + kept)
+    if os.path.isdir(ASSETS_DIR):
+        for f in os.listdir(ASSETS_DIR):
+            if f in LEGACY_DEFAULT_IMAGES:
+                try:
+                    os.remove(os.path.join(ASSETS_DIR, f))
+                except OSError:
+                    pass
+
+    # old LaunchAgent label
+    legacy_plist = os.path.join(LAUNCH_AGENT_DIR, f"{LEGACY_BUNDLE_ID}.plist")
+    if os.path.exists(legacy_plist):
+        print("Replacing legacy LaunchAgent with the new label.")
+        try:
+            os.remove(legacy_plist)
+        except OSError as e:
+            print(f"Could not remove legacy plist: {e}")
+        set_autolaunch(True)
+
 def initialize_app_data():
     """Checks and initializes the Application Support folder."""
     print(f"Checking data integrity in: {APP_DATA_DIR}")
 
+    migrate_legacy_data()
     sync_default_assets()
     os.makedirs(DATA_DIR, exist_ok=True)
 

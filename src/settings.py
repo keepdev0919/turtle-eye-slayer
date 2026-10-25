@@ -53,12 +53,12 @@ class MissionBoardApp:
         
         # Tab 1: Schedule
         self.tab_schedule = tk.Frame(self.notebook, bg="#f5e6d3")
-        self.notebook.add(self.tab_schedule, text="시간 설정")
+        self.notebook.add(self.tab_schedule, text="알림 시간")
         self.setup_schedule_tab()
 
         # Tab 2: Characters
         self.tab_characters = tk.Frame(self.notebook, bg="#f5e6d3")
-        self.notebook.add(self.tab_characters, text="캐릭터 관리")
+        self.notebook.add(self.tab_characters, text="동물 관리")
         self.setup_character_tab()
         
         self.current_dialog = None
@@ -71,7 +71,7 @@ class MissionBoardApp:
     def setup_schedule_tab(self):
         tk.Label(
             self.tab_schedule,
-            text="임무 수행 시간 선택 (매 시)",
+            text="동물들이 찾아올 시간 (매 시)",
             font=(FONT, 12),
             bg="#f5e6d3",
             fg="#555555"
@@ -106,7 +106,7 @@ class MissionBoardApp:
         # Save Button
         start_btn = tk.Button(
             self.tab_schedule,
-            text="시간 설정 저장",
+            text="알림 시간 저장",
             command=self.save_schedule,
             font=(FONT, 14, "bold"),
             bg="#8B0000", fg="white",
@@ -125,7 +125,7 @@ class MissionBoardApp:
             return
 
         save_json(CONFIG_FILE, {"selected_minutes": sorted(new_selection)})
-        messagebox.showinfo("완료", "임무 스케줄이 변경되었습니다.")
+        messagebox.showinfo("완료", "알림 시간이 바뀌었습니다. 바로 적용됩니다.")
 
     # --- Character Tab ---
     def setup_character_tab(self):
@@ -155,14 +155,14 @@ class MissionBoardApp:
         btn_frame = tk.Frame(self.tab_characters, bg="#f5e6d3")
         btn_frame.pack(fill="x", padx=10, pady=10)
         
-        tk.Button(btn_frame, text="캐릭터 추가", command=lambda: self.open_character_dialog(None)).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="동물 추가", command=lambda: self.open_character_dialog(None)).pack(side="left", padx=5)
         tk.Button(btn_frame, text="선택 삭제", command=self.delete_character).pack(side="left", padx=5)
         tk.Button(btn_frame, text="기본값 복원", command=self.reset_to_defaults, bg="#FFB6C1").pack(side="left", padx=5)
         
         # Open Folder Button
         tk.Button(btn_frame, text="📂 데이터 폴더 열기", command=self.open_data_folder).pack(side="right", padx=5)
         
-        tk.Label(btn_frame, text="* 목록을 더블클릭하면 수정할 수 있습니다.", bg="#f5e6d3", fg="#666").pack(side="left", padx=10)
+        tk.Label(btn_frame, text="* 더블클릭하면 사진과 멘트를 고칠 수 있어요.", bg="#f5e6d3", fg="#666").pack(side="left", padx=10)
 
     def open_data_folder(self):
         import subprocess
@@ -180,7 +180,7 @@ class MissionBoardApp:
             messagebox.showerror("에러", f"폴더를 열 수 없습니다: {e}")
 
     def reset_to_defaults(self):
-        if messagebox.askyesno("경고", "모든 캐릭터 데이터가 초기화됩니다.\n정말로 기본값으로 되돌리시겠습니까?"):
+        if messagebox.askyesno("경고", "직접 추가한 동물과 멘트가 모두 사라집니다.\n기본 동물원으로 되돌릴까요?"):
             self.characters = utils.get_default_characters()
             save_json(CHARACTERS_FILE, self.characters)
             self.load_character_list()
@@ -207,7 +207,7 @@ class MissionBoardApp:
 
         # Mode check
         is_edit = (index is not None)
-        mode_title = "캐릭터 수정" if is_edit else "캐릭터 추가"
+        mode_title = "동물 수정" if is_edit else "동물 추가"
         
         if is_edit:
             current_data = self.characters[index]
@@ -224,7 +224,7 @@ class MissionBoardApp:
         top.protocol("WM_DELETE_WINDOW", self.on_dialog_close)
         
         # Image Section
-        tk.Label(top, text="1. 이미지 선택").pack(pady=5)
+        tk.Label(top, text="1. 사진 선택").pack(pady=5)
         
         # Preview Label
         preview_lbl = tk.Label(top, text="(이미지 미리보기)", bg="#eee", width=20, height=10)
@@ -265,7 +265,7 @@ class MissionBoardApp:
                 preview_lbl.config(text="이미지 없음", image="", width=30, height=10)
 
         def browse_and_preview():
-            file_path = filedialog.askopenfilename(filetypes=[("Images", "*.png *.jpg *.jpeg *.gif")])
+            file_path = filedialog.askopenfilename(filetypes=[("사진", "*.png *.jpg *.jpeg *.gif")])
             if file_path:
                 self.img_path_var.set(file_path)
                 update_preview(file_path)
@@ -277,14 +277,14 @@ class MissionBoardApp:
             update_preview(original_image)
             
         # Name
-        tk.Label(top, text="2. 이름").pack(pady=5)
+        tk.Label(top, text="2. 이름 (예: 모니터 응시 고양이)").pack(pady=5)
         name_entry = tk.Entry(top)
         name_entry.pack(padx=20, fill="x")
         if is_edit:
             name_entry.insert(0, current_data.get("name", ""))
         
         # Quotes
-        tk.Label(top, text="3. 대사 (여러줄을 입력하시면 랜덤으로 한줄이 뜨게됩니다)").pack(pady=5)
+        tk.Label(top, text="3. 멘트 (한 줄에 하나씩, 랜덤으로 하나가 뜹니다)").pack(pady=5)
         quotes_text = tk.Text(top, height=8)
         quotes_text.pack(padx=20, fill="x")
         if is_edit:
@@ -339,7 +339,7 @@ class MissionBoardApp:
             save_json(CHARACTERS_FILE, self.characters)
             
             action_text = "수정" if is_edit else "추가"
-            messagebox.showinfo("완료", f"캐릭터가 {action_text}되었습니다!")
+            messagebox.showinfo("완료", f"동물이 {action_text}되었습니다!")
             self.load_character_list()
             top.destroy()
             
@@ -357,15 +357,15 @@ class MissionBoardApp:
         char = self.characters[idx]
         
         if len(self.characters) <= 1:
-            messagebox.showwarning("주의", "최소 한 명의 캐릭터는 남겨두어야 합니다.")
+            messagebox.showwarning("주의", "동물원에 최소 한 마리는 남겨두어야 합니다.")
             return
 
-        if messagebox.askyesno("삭제 확인", f"'{char['name']}' 캐릭터를 삭제하시겠습니까?"):
+        if messagebox.askyesno("삭제 확인", f"'{char['name']}'을(를) 동물원에서 내보낼까요?"):
             del self.characters[idx]
             save_json(CHARACTERS_FILE, self.characters)
             self.remove_orphan_custom_image(char.get("image", ""))
             self.load_character_list()
-            messagebox.showinfo("삭제", "삭제되었습니다.")
+            messagebox.showinfo("삭제", "내보냈습니다.")
 
     def remove_orphan_custom_image(self, image_name):
         """Deletes a user-uploaded (custom_*) image once no character references it."""

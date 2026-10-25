@@ -150,7 +150,7 @@ def run_scheduler():
 class DashboardApp:
     def __init__(self, root, start_hidden=False):
         self.root = root
-        self.root.title("귀살대 작전 본부")
+        self.root.title(f"{utils.APP_DISPLAY_NAME} 관리실")
         self.root.geometry("800x600")
         self.root.resizable(False, False)
         self.settings_window = None
@@ -177,10 +177,10 @@ class DashboardApp:
         self.root.protocol("WM_DELETE_WINDOW", self.hide_window)
         
         # 1. Status text drawn directly on the background canvas
-        self.status_text_id = self.canvas.create_text(400, 100, text="작전 준비 완료", font=(FONT, 28, "bold"), fill="#00ff00", justify="center")
+        self.status_text_id = self.canvas.create_text(400, 100, text="🐾 동물원 준비 완료", font=(FONT, 28, "bold"), fill="#9be7c4", justify="center")
 
         # 2. Main Button (Mission Toggle)
-        self.btn_toggle = CanvasButton(self.canvas, 400, 280, 320, 80, "임무 시작", self.toggle_scheduler, 
+        self.btn_toggle = CanvasButton(self.canvas, 400, 280, 320, 80, "순찰 시작", self.toggle_scheduler, 
                                        base_color="#2ecc71", hover_color="#45e683", font=(FONT, 22, "bold"))
         
         # 3. Sub Buttons
@@ -193,13 +193,13 @@ class DashboardApp:
         # 4. Auto-Launch Checkbox (self-heals a stale plist if the app was moved)
         self.auto_launch_var = tk.BooleanVar(value=utils.sync_autolaunch())
         self.auto_launch_var.trace_add("write", lambda *_: self._sync_menubar())
-        chk = tk.Checkbutton(root, text="맥북 시작 시 본부 자동 연결", variable=self.auto_launch_var, command=self.toggle_autolaunch,
+        chk = tk.Checkbutton(root, text="맥 시작 시 동물원 자동 개장", variable=self.auto_launch_var, command=self.toggle_autolaunch,
                              font=(FONT, 12, "bold"), fg="white", bg="black", selectcolor="black",
                              activebackground="black", activeforeground="white", highlightthickness=0)
         self.canvas.create_window(400, 520, window=chk)
 
         # 5. Quit Link (Small text at bottom)
-        lbl_quit = tk.Label(root, text="본부 완전 종료", font=(FONT, 9, "underline"), fg="#666666", bg="black", cursor="hand2")
+        lbl_quit = tk.Label(root, text="동물원 완전 종료", font=(FONT, 9, "underline"), fg="#666666", bg="black", cursor="hand2")
         lbl_quit.bind("<Button-1>", lambda e: self.quit_app())
         self.canvas.create_window(740, 570, window=lbl_quit)
 
@@ -243,7 +243,7 @@ class DashboardApp:
                 print(f"Failed to load {name}: {e}")
                 return None
 
-        self.img_bg = load_img("bg_dojo.png", (800, 600))
+        self.img_bg = load_img("bg_zoo.png", (800, 600))
 
     def set_window_icon(self):
         """Sets the window icon if app_icon.png exists."""
@@ -252,7 +252,7 @@ class DashboardApp:
             icon_path = os.path.join(utils.BUNDLED_ASSETS_DIR, "app_icon.png")
             if not os.path.exists(icon_path):
                 # Use a default character icon if app_icon.png is missing
-                icon_path = os.path.join(utils.BUNDLED_ASSETS_DIR, "tanjiro.png")
+                icon_path = os.path.join(utils.BUNDLED_ASSETS_DIR, "zoo_quokka.jpg")
             
             if os.path.exists(icon_path):
                 img = Image.open(icon_path)
@@ -268,12 +268,12 @@ class DashboardApp:
         
         if is_running:
             is_running = False
-            self.canvas.itemconfig(self.status_text_id, text="⚠️ 작전 중지 ⚠️", fill="#ff4444")
-            self.btn_toggle.config(text="임무 시작", base_color="#2ecc71", hover_color="#45e683")
+            self.canvas.itemconfig(self.status_text_id, text="💤 순찰 쉬는 중", fill="#ffb86b")
+            self.btn_toggle.config(text="순찰 시작", base_color="#2ecc71", hover_color="#45e683")
         else:
             is_running = True
-            self.canvas.itemconfig(self.status_text_id, text="⚔️ 작전 수행 중 ⚔️", fill="#44ff44")
-            self.btn_toggle.config(text="임무 중지", base_color="#e74c3c", hover_color="#ff5e4d")
+            self.canvas.itemconfig(self.status_text_id, text="🐾 동물들 순찰 중", fill="#9be7c4")
+            self.btn_toggle.config(text="순찰 중지", base_color="#e74c3c", hover_color="#ff5e4d")
             
             if scheduler_thread is None or not scheduler_thread.is_alive():
                 stop_event.clear()
@@ -327,7 +327,7 @@ class DashboardApp:
 
     def quit_app(self):
         """Completely terminates the application."""
-        if messagebox.askokcancel("종료", "귀살대 건강 관리 본부를 완전히 종료하시겠습니까?\n(종료 시 알림이 더 이상 뜨지 않습니다)"):
+        if messagebox.askokcancel("종료", f"{utils.APP_DISPLAY_NAME}을 완전히 닫을까요?\n(닫으면 동물들이 더 이상 찾아오지 않습니다)"):
             self.cleanup_and_exit()
 
     def cleanup_and_exit(self):
